@@ -1,0 +1,71 @@
+<canvas id="game" width="2000px" height="2000px"
+    style="max-width: calc(100vw - 10px); max-height: calc(100vh - 16px);"></canvas>
+<script src="render.js"></script>
+<script src="sprites.js"></script>
+<img src="assets/car/red.png" id="redcar" style="display: none;">
+<img src="assets/track/track.png" id="track" style="display: none;">
+<script>
+    let playercar;
+    renderEngine.ctx = document.getElementById('game').getContext('2d');
+    renderEngine.sprites = {
+        redcar: document.getElementById('redcar'),
+        track: document.getElementById('track')
+    };
+    playercar = renderEngine.addPlayerCar(renderEngine.sprites.redcar, 300, 1050, 0, .25, 0, 4, 0, 1250, 500, 1, 15);
+    renderEngine.addRemoteCar(renderEngine.sprites.redcar,  350, 1050, 0, .25, 0, 4, 0, 1250, 500, 1, 15);
+    renderEngine.addUI('text', 50, 100, 96, 'black', (objects) => {return (objects[playercar].v*5).toFixed(0)+' mph'})
+    //renderEngine.addUI('text', 1600, 100, 96, 'black', (objects) => {return frame/50;})
+    renderEngine.renderFrame();
+
+    let frame = 0;
+    const gameloop = () => {
+        setInterval(() => {
+            for (obj in renderEngine.objects) {
+                obj = renderEngine.objects[obj];
+
+                // acceleration
+                if (input.w) { 
+                    if (obj.v < obj.mv) obj.a = obj.ma;
+                    else obj.a = 0;
+                    if (obj.v < 0) obj.a = obj.brakingA; 
+                } else if (input.s) {
+                    if (obj.v > -obj.mv) obj.a = -obj.ma;
+                    else obj.a = 0;
+                    if (obj.v > 0) obj.a = -obj.brakingA;
+                } else if (!input.w && !input.s) {
+                    obj.a = -obj.drag*(obj.v/(.75*obj.mv));
+                    if (obj.v < 30) obj.a = -obj.drag*obj.v;
+                }
+
+                // velocity
+                obj.v += obj.a;
+                if (obj.v < obj.ma && obj.v > -obj.ma) obj.v = 0;
+
+                // rotation
+                if (input.a) {
+                    obj.r += -(obj.rs/obj.mv)*obj.v;
+                } else if (input.d) {
+                    obj.r += (obj.rs/obj.mv)*obj.v
+                }
+
+                // position
+                obj.x += obj.v * Math.cos((obj.r - 90) * (Math.PI / 180));
+                obj.y += obj.v * Math.sin((obj.r - 90) * (Math.PI / 180));
+            }
+
+            renderEngine.renderFrame();
+            frame++;
+        }, 20);
+    }
+
+    input = {w: false, a: false, s: false, d: false};
+
+    addEventListener('keydown', evt => {
+        input[evt.key] = true;
+        if (frame === 0) gameloop();
+    });
+
+    addEventListener('keyup', evt => {
+        input[evt.key] = false;
+    });
+</script>
